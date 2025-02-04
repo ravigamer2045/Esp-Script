@@ -1,0 +1,156 @@
+-- 📌 Carregar a Library
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wizard"))()
+local Window = Library:NewWindow("ESP Menu")
+local ESPSection = Window:NewSection("ESP Settings")
+
+-- 🎯 Configuração do ESP
+local ESP = {
+    Enabled = false,  
+    ShowNames = true,  
+    Color = Color3.fromRGB(255, 0, 0),  
+    LineColor = Color3.fromRGB(0, 255, 0),  
+    BoxThickness = 2,  
+    LineThickness = 1  
+}
+
+-- 🔧 Serviços necessários
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- 📌 Criar ESP para jogadores
+local function CreateESP(target)
+    if not ESP.Enabled then return end
+
+    -- Desenho dos elementos ESP
+    local BoxOutline = Drawing.new("Square")
+    local Box = Drawing.new("Square")
+    local Line = Drawing.new("Line")
+    local NameTag = Drawing.new("Text")
+
+    -- Configuração das caixas
+    BoxOutline.Visible = false
+    BoxOutline.Color = Color3.new(0, 0, 0)
+    BoxOutline.Thickness = ESP.BoxThickness + 1
+    BoxOutline.Filled = false
+
+    Box.Visible = false
+    Box.Color = ESP.Color
+    Box.Thickness = ESP.BoxThickness
+    Box.Filled = false
+
+    -- Configuração da linha
+    Line.Visible = false
+    Line.Color = ESP.LineColor
+    Line.Thickness = ESP.LineThickness
+
+    -- Configuração do nome
+    NameTag.Visible = false
+    NameTag.Color = ESP.Color
+    NameTag.Size = 16
+    NameTag.Center = true
+    NameTag.Outline = true
+
+    -- Atualizar ESP a cada frame
+    local function Update()
+        if not target or not target.Parent then
+            Box:Remove()
+            BoxOutline:Remove()
+            Line:Remove()
+            NameTag:Remove()
+            return
+        end
+
+        local HumanoidRootPart = target:FindFirstChild("HumanoidRootPart")
+        if not HumanoidRootPart then return end
+
+        local Position, OnScreen = Camera:WorldToViewportPoint(HumanoidRootPart.Position)
+
+        if OnScreen then
+            -- 📌 Definir tamanho fixo da caixa ESP
+            local BoxSize = Vector2.new(100, 150) -- Tamanho fixo para evitar mudanças bruscas
+
+            -- Caixa ESP
+            BoxOutline.Size = BoxSize
+            BoxOutline.Position = Vector2.new(Position.X - BoxSize.X / 2, Position.Y - BoxSize.Y / 2)
+            BoxOutline.Visible = true
+
+            Box.Size = BoxSize
+            Box.Position = Vector2.new(Position.X - BoxSize.X / 2, Position.Y - BoxSize.Y / 2)
+            Box.Visible = true
+
+            -- Linha até o jogador
+            Line.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 1.1)
+            Line.To = Vector2.new(Position.X, Position.Y)
+            Line.Visible = true
+
+            -- Nome do jogador
+            if ESP.ShowNames and target:FindFirstChild("Humanoid") then
+                NameTag.Text = target.Name
+                NameTag.Position = Vector2.new(Position.X, Position.Y - BoxSize.Y)
+                NameTag.Visible = true
+            else
+                NameTag.Visible = false
+            end
+        else
+            Box.Visible = false
+            BoxOutline.Visible = false
+            Line.Visible = false
+            NameTag.Visible = false
+        end
+    end
+
+    -- Atualizar em tempo real
+    RunService.RenderStepped:Connect(Update)
+end
+
+-- 📌 Função para ativar ESP para todos os jogadores
+local function EnableESP()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local Character = player.Character
+            if Character then
+                CreateESP(Character)
+            end
+        end
+    end
+
+    -- Detectar novos jogadores
+    Players.PlayerAdded:Connect(function(player)
+        player.CharacterAdded:Connect(function(character)
+            CreateESP(character)
+        end)
+    end)
+end
+
+-- 📌 Interface GUI usando sua library
+ESPSection:CreateToggle("Ativar ESP", function(value)
+    ESP.Enabled = value
+    if value then
+        EnableESP()
+    end
+end)
+
+ESPSection:CreateToggle("Mostrar Nomes", function(value)
+    ESP.ShowNames = value
+end)
+
+ESPSection:CreateColorPicker("Cor do ESP", Color3.new(255, 0, 0), function(value)
+    ESP.Color = value
+end)
+
+ESPSection:CreateColorPicker("Cor da Linha", Color3.new(0, 255, 0), function(value)
+    ESP.LineColor = value
+end)
+
+ESPSection:CreateSlider("Espessura da Caixa", 1, 5, 2, false, function(value)
+    ESP.BoxThickness = value
+end)
+
+ESPSection:CreateSlider("Espessura da Linha", 1, 5, 1, false, function(value)
+    ESP.LineThickness = value
+end)
+
+-- 🔥 Aviso no console
+print("ESP atualizado e funcionando!")
